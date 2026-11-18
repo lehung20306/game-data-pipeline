@@ -1,0 +1,8 @@
+meta:
+  "ACCOUNT_ID_001":
+    game: "Game A"
+    os: "Android"
+
+  "ACCOUNT_ID_002":
+    game: "Game B"
+    os: "iOS"
