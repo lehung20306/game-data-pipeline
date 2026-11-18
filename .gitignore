@@ -1,0 +1,33 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Private account configuration
+config/account_mapping.yaml
+
+# Google Cloud credentials
+secrets/
+keys/
+*service-account*.json
+*credentials*.json
+
+# Python environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code local settings
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# Local datasets
+data/
