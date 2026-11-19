@@ -89,8 +89,6 @@ if __name__ == "__main__":
     # Fetch the latest 3 complete UTC reporting days.
     until_date = datetime.now(timezone.utc).date() - timedelta(days=1)
     since_date = until_date - timedelta(days=2)
-
     since = since_date.isoformat()
     until = until_date.isoformat()
-
     run_meta_pipeline(since, until)

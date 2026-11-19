@@ -17,8 +17,7 @@ def load_to_bronze(table_name, rows, source, source_account_id=None):
     if not re.fullmatch(r"[a-z][a-z0-9_]*", table_name):
         raise ValueError(f"Invalid table name: {table_name}")
     project_id = os.environ["GCP_PROJECT_ID"]
-    dataset_id = os.getenv("BQ_BRONZE_DATASET")
-    table_id = f"{project_id}.{dataset_id}.{table_name}"
+    table_id = f"{project_id}.bronze.{table_name}"
     # Use Application Default Credentials.
     client = bigquery.Client(project=project_id)
     # Define a shared schema for all tables.
