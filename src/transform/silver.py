@@ -1,3 +1,6 @@
+
+    
+  
 import os
 import logging
 from pathlib import Path
@@ -10,10 +13,30 @@ logger = logging.getLogger(__name__)
 
 META_SILVER_QUERIES = [
     "marketing/meta_campaign.sql",
-    "marketing/meta_adset.sql",
+    "marketing/meta_ad_group.sql",
     "marketing/meta_ad.sql",
-    "marketing/meta_insights.sql",
+    "marketing/meta_ad_performance_daily.sql",
 ]
+
+TIKTOK_SILVER_QUERIES = [
+    "marketing/tiktok_campaign.sql",
+    "marketing/tiktok_ad_group.sql",
+    "marketing/tiktok_ad.sql",
+    "marketing/tiktok_ad_performance_daily.sql",
+]
+
+GOOGLE_SILVER_QUERIES = [
+    "marketing/google_campaign.sql",
+    "marketing/google_ad_group.sql",
+    "marketing/google_ad.sql",
+    "marketing/google_ad_performance_daily.sql",
+]
+
+ALL_SILVER_QUERIES = (
+    META_SILVER_QUERIES
+    + TIKTOK_SILVER_QUERIES
+    + GOOGLE_SILVER_QUERIES
+)
 
 def run_silver(query_files):
     project_id = os.environ["GCP_PROJECT_ID"]
@@ -50,9 +73,19 @@ def run_silver(query_files):
 def run_meta_silver():
     run_silver(META_SILVER_QUERIES)
 
+def run_tiktok_silver():
+    run_silver(TIKTOK_SILVER_QUERIES)
+
+def run_google_silver():
+    run_silver(GOOGLE_SILVER_QUERIES)
+
+def run_all_silver():
+    run_silver(ALL_SILVER_QUERIES)
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     )
-    run_meta_silver()
+    run_all_silver()
+

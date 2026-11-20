@@ -13,20 +13,16 @@ META_TOKEN = os.getenv("META_ACCESS_TOKEN")
 META_BASE = os.getenv("META_BASE").rstrip("/")
 logger = logging.getLogger(__name__)
 
-
 def meta_get(url, params):
     while True:
         body = requests.get(url, params=params, timeout=60).json()
         if "error" not in body:
             return body                              
         if body["error"]["code"] == 17:                 
-            logger.warning(
-                "Meta rate limit reached. Attempt %d/4. Retrying in 60 seconds.",
-            )
+            logger.warning("Meta rate limit reached. Retrying in 60 seconds.")
             time.sleep(60)
             continue
         raise RuntimeError(f"Meta API error: {body['error']}")
-
 
 def get_meta_pages(url, params):
     rows = []
@@ -37,7 +33,6 @@ def get_meta_pages(url, params):
         # The next URL already contains all query parameters.
         params = None
     return rows
-
 
 def get_meta_accounts():
     config_path = BASE_DIR / "config" / "account_mapping.yaml"
@@ -53,13 +48,12 @@ def get_meta_accounts():
         })
     return accounts
 
-
 def get_meta_campaigns(account_id):
     url = f"{META_BASE}/{account_id}/campaigns"
     params = {
         "access_token": META_TOKEN,
         "fields": (
-            "id,name,account_id,effective_status,"
+            "id,name,status,effective_status,"
             "daily_budget,start_time,stop_time,bid_strategy"
         ),
         "limit": 500
@@ -71,9 +65,8 @@ def get_meta_adsets(account_id):
     params = {
         "access_token": META_TOKEN,
         "fields": (
-            "id,name,account_id,campaign_id,"
-            "effective_status,optimization_goal,"
-            "targeting,promoted_object"
+            "id,name,campaign_id,status,effective_status,"
+            "optimization_goal,targeting,promoted_object"
         ),
         "limit": 500
     }
@@ -84,8 +77,9 @@ def get_meta_ads(account_id):
     params = {
         "access_token": META_TOKEN,
         "fields": (
-            "id,name,account_id,adset_id,campaign_id,"
-            "effective_status,creative{id,name,object_type}"
+            "id,name,adset_id,campaign_id,status,"
+            "effective_status,"
+            "creative{id,name,object_type,asset_feed_spec}"
         ),
         "limit": 500
     }
@@ -103,8 +97,7 @@ def get_meta_insights(account_id, since, until):
             "until": until
         }),
         "fields": (
-            "account_id,campaign_id,campaign_name,"
-            "adset_id,adset_name,ad_id,ad_name,"
+            "campaign_id,adset_id,ad_id,"
             "spend,impressions,clicks,actions,action_values"
         ),
         "limit": 500

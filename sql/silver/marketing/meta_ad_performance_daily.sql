@@ -1,20 +1,20 @@
-CREATE OR REPLACE TABLE `{{PROJECT_ID}}.silver.meta_insights` AS
+CREATE OR REPLACE TABLE `{{PROJECT_ID}}.silver.meta_ad_performance_daily` AS
 WITH normalized AS (
     SELECT
         source AS platform,
         source_account_id AS account_id,
         JSON_VALUE(payload, '$.campaign_id') AS campaign_id,
-        JSON_VALUE(payload, '$.adset_id') AS adset_id,
+        JSON_VALUE(payload, '$.adset_id') AS ad_group_id,
         JSON_VALUE(payload, '$.ad_id') AS ad_id,
         SAFE_CAST(
             JSON_VALUE(payload, '$.date_start')
             AS DATE
         ) AS report_date,
-        JSON_VALUE(payload, '$.country') AS country,
+        UPPER(JSON_VALUE(payload, '$.country')) AS country_code,
         SAFE_CAST(
             JSON_VALUE(payload, '$.spend')
             AS NUMERIC
-        ) AS spend,
+        ) AS spend_usd,
         SAFE_CAST(
             JSON_VALUE(payload, '$.impressions')
             AS INT64
@@ -70,15 +70,15 @@ WITH normalized AS (
                     = 'app_custom_event.fb_mobile_purchase'
             ),
             0
-        ) AS revenue,
+        ) AS revenue_usd,
         extracted_at
-    FROM `{{PROJECT_ID}}.bronze.meta_insights_raw`
+    FROM `{{PROJECT_ID}}.bronze.meta_insight_raw`
 )
 SELECT *
 FROM normalized
 WHERE ad_id IS NOT NULL
     AND report_date IS NOT NULL
 QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY account_id, ad_id, report_date, country
+    PARTITION BY account_id, ad_id, report_date, country_code
     ORDER BY extracted_at DESC
 ) = 1;

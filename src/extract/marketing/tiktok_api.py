@@ -20,9 +20,7 @@ def tiktok_get(path, params):
         if body["code"] == 0:
             return body["data"]                      
         if body["code"] == 40100:                       
-            logger.warning(
-                "Tiktok rate limit reached. Attempt %d/4. Retrying in 60 seconds.",
-            )
+            logger.warning("Tiktok rate limit reached. Retrying in 60 seconds.")
             time.sleep(60)
             continue
         raise RuntimeError(f"Tiktok API error {body['code']}: {body['message']}")
@@ -67,28 +65,67 @@ def get_tiktok_campaigns(advertiser_id):
     path = "/campaign/get/"
     params = {
         "advertiser_id": str(advertiser_id),
+        "fields": json.dumps([
+            "campaign_id",
+            "campaign_name",
+            "budget",
+            "budget_mode",
+            "operation_status",
+            "secondary_status",
+            "create_time",
+            "modify_time"
+        ]),
         "page_size": 1000
     }
-    return get_tiktok_pages(path, params)
-
+    return get_tiktok_pages(path, params)   
 
 def get_tiktok_adgroups(advertiser_id):
     path = "/adgroup/get/"
     params = {
         "advertiser_id": str(advertiser_id),
+        "fields": json.dumps([
+            "adgroup_id",
+            "adgroup_name",
+            "campaign_id",
+            "app_id",
+            "app_download_url",
+            "app_type",
+            "location_ids",
+            "age_groups",
+            "gender",
+            "operating_systems",
+            "audience_type",
+            "optimization_goal",
+            "operation_status",
+            "secondary_status",
+            "schedule_start_time",
+            "schedule_end_time"
+        ]),
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
-
 
 def get_tiktok_ads(advertiser_id):
     path = "/ad/get/"
     params = {
         "advertiser_id": str(advertiser_id),
+        "fields": json.dumps([
+            "ad_id",
+            "ad_name",
+            "adgroup_id",
+            "campaign_id",
+            "ad_format",
+            "operation_status",
+            "secondary_status",
+            "video_id",
+            "image_ids",
+            "playable_url",
+            "create_time",
+            "modify_time"
+        ]),
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
-
 
 def get_tiktok_reporting(advertiser_id, since, until):
     path = "/report/integrated/get/"
@@ -103,6 +140,8 @@ def get_tiktok_reporting(advertiser_id, since, until):
             "country_code"
         ]),
         "metrics": json.dumps([
+            "campaign_id",
+            "adgroup_id",
             "spend",
             "impressions",
             "clicks",
@@ -115,24 +154,3 @@ def get_tiktok_reporting(advertiser_id, since, until):
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    advertisers = get_tiktok_advertisers()
-    advertiser_id = advertisers[0]["advertiser_id"]
-
-    campaigns = get_tiktok_campaigns(advertiser_id)
-    adgroups = get_tiktok_adgroups(advertiser_id)
-    ads = get_tiktok_ads(advertiser_id)
-
-    reporting = get_tiktok_reporting(
-        advertiser_id,
-        since="2026-11-15",
-        until="2026-11-17"
-    )
-
-    logger.info("Campaigns: %d", len(campaigns))
-    logger.info("Ad groups: %d", len(adgroups))
-    logger.info("Ads: %d", len(ads))
-    logger.info("Reporting rows: %d", len(reporting))
