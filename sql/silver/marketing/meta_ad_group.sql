@@ -40,20 +40,9 @@ WITH normalized AS (
         SAFE_CAST(
             JSON_VALUE(payload, '$.targeting.age_max') AS INT64
         ) AS target_age_max,
-        STRUCT(
-            JSON_VALUE(
-                payload,
-                '$.promoted_object.application_id'
-            ) AS application_id,
-            JSON_VALUE(
-                payload,
-                '$.promoted_object.custom_event_type'
-            ) AS custom_event_type,
-            JSON_VALUE(
-                payload,
-                '$.promoted_object.object_store_url'
-            ) AS object_store_url
-        ) AS promoted_object,
+        JSON_VALUE(
+            payload, '$.promoted_object.custom_event_type'
+        ) AS custom_event_type,
         extracted_at
     FROM `{{PROJECT_ID}}.bronze.meta_adset_raw`
 )

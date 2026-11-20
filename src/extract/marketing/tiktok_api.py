@@ -65,16 +65,6 @@ def get_tiktok_campaigns(advertiser_id):
     path = "/campaign/get/"
     params = {
         "advertiser_id": str(advertiser_id),
-        "fields": json.dumps([
-            "campaign_id",
-            "campaign_name",
-            "budget",
-            "budget_mode",
-            "operation_status",
-            "secondary_status",
-            "create_time",
-            "modify_time"
-        ]),
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)   
@@ -83,24 +73,6 @@ def get_tiktok_adgroups(advertiser_id):
     path = "/adgroup/get/"
     params = {
         "advertiser_id": str(advertiser_id),
-        "fields": json.dumps([
-            "adgroup_id",
-            "adgroup_name",
-            "campaign_id",
-            "app_id",
-            "app_download_url",
-            "app_type",
-            "location_ids",
-            "age_groups",
-            "gender",
-            "operating_systems",
-            "audience_type",
-            "optimization_goal",
-            "operation_status",
-            "secondary_status",
-            "schedule_start_time",
-            "schedule_end_time"
-        ]),
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
@@ -109,20 +81,6 @@ def get_tiktok_ads(advertiser_id):
     path = "/ad/get/"
     params = {
         "advertiser_id": str(advertiser_id),
-        "fields": json.dumps([
-            "ad_id",
-            "ad_name",
-            "adgroup_id",
-            "campaign_id",
-            "ad_format",
-            "operation_status",
-            "secondary_status",
-            "video_id",
-            "image_ids",
-            "playable_url",
-            "create_time",
-            "modify_time"
-        ]),
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
@@ -154,3 +112,4 @@ def get_tiktok_reporting(advertiser_id, since, until):
         "page_size": 1000
     }
     return get_tiktok_pages(path, params)
+

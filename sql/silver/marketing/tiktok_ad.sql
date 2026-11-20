@@ -32,9 +32,6 @@ WITH normalized AS (
                 THEN 'VIDEO'
             ELSE 'UNKNOWN'
         END AS creative_format,
-        JSON_VALUE(payload, '$.video_id') AS video_id,
-        JSON_VALUE_ARRAY(payload, '$.image_ids') AS image_ids,
-        JSON_VALUE(payload, '$.playable_url') AS playable_url,
         SAFE.PARSE_TIMESTAMP(
             '%Y-%m-%d %H:%M:%S',
             JSON_VALUE(payload, '$.create_time'),

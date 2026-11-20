@@ -26,8 +26,6 @@ WITH normalized AS (
                 THEN 'RUNNING'
             ELSE 'UNKNOWN'
         END AS delivery_status,
-        JSON_VALUE(raw.payload, '$.adGroupAd.ad.id') AS creative_id,
-        JSON_VALUE(raw.payload, '$.adGroupAd.ad.name') AS creative_name,
         JSON_VALUE(raw.payload, '$.adGroupAd.ad.type') AS creative_type,
         CASE
             WHEN STARTS_WITH(
