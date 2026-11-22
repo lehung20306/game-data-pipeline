@@ -9,6 +9,7 @@ load_dotenv(BASE_DIR / ".env")
 logger = logging.getLogger(__name__)
 
 META_SILVER_QUERIES = [
+    "marketing/meta_account.sql"
     "marketing/meta_campaign.sql",
     "marketing/meta_ad_group.sql",
     "marketing/meta_ad.sql",
@@ -16,6 +17,7 @@ META_SILVER_QUERIES = [
 ]
 
 TIKTOK_SILVER_QUERIES = [
+    "marketing/tiktok_account.sql"
     "marketing/tiktok_campaign.sql",
     "marketing/tiktok_ad_group.sql",
     "marketing/tiktok_ad.sql",
@@ -23,6 +25,7 @@ TIKTOK_SILVER_QUERIES = [
 ]
 
 GOOGLE_SILVER_QUERIES = [
+    "marketing/google_account.sql"
     "marketing/google_campaign.sql",
     "marketing/google_ad_group.sql",
     "marketing/google_ad.sql",

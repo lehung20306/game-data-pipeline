@@ -25,6 +25,7 @@ from src.extract.marketing.google_api import (
 )
 from src.load.bronze_loader import load_to_bronze
 from src.transform.silver import run_all_silver
+from src.transform.silver import run_silver
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,11 +35,19 @@ logger = logging.getLogger(__name__)
 
 def run_meta_pipeline(since, until):
     accounts = get_meta_accounts()
+    if not accounts:
+        raise RuntimeError("No Meta accounts configured")
+    load_to_bronze(
+    "meta_account_raw",
+        accounts,
+        source="meta",
+        source_account_id=None,
+        account_id_field="account_id",
+        write_disposition="WRITE_TRUNCATE"
+    )
     logger.info("Starting Meta pipeline")
     logger.info("Total accounts: %d", len(accounts))
     logger.info("Date range: %s to %s", since, until)
-    if not accounts:
-        raise RuntimeError("No Meta accounts configured")
     failed_accounts = []
     for account in accounts:
         account_id = account["account_id"]
@@ -78,11 +87,18 @@ def run_meta_pipeline(since, until):
 
 def run_tiktok_pipeline(since, until):
     advertisers = get_tiktok_advertisers()
-    logger.info("Starting TikTok pipeline | %d advertisers", len(advertisers))
-    logger.info("Date range: %s to %s", since, until)
     if not advertisers:
         raise RuntimeError("No TikTok advertisers configured")
-
+    load_to_bronze(
+        "tiktok_advertiser_raw",
+        advertisers,
+        source="tiktok",
+        source_account_id=None,
+        account_id_field="advertiser_id",
+        write_disposition="WRITE_TRUNCATE"
+    )
+    logger.info("Starting TikTok pipeline | %d advertisers", len(advertisers))
+    logger.info("Date range: %s to %s", since, until)
     failed_advertisers = []
     for advertiser in advertisers:
         advertiser_id = advertiser["advertiser_id"]
@@ -118,10 +134,18 @@ def run_tiktok_pipeline(since, until):
 
 def run_google_pipeline(since, until):
     customers = get_google_customers()
-    logger.info("Starting Google Ads pipeline | %d customers", len(customers))
-    logger.info("Date range: %s to %s", since, until)
     if not customers:
         raise RuntimeError("No Google Ads customers configured")
+    load_to_bronze(
+        "google_customer_raw",
+        customers,
+        source="google",
+        source_account_id=None,
+        account_id_field="customer_id",
+        write_disposition="WRITE_TRUNCATE"
+    )
+    logger.info("Starting Google Ads pipeline | %d customers", len(customers))
+    logger.info("Date range: %s to %s", since, until)
     # The geo-target lookup is shared across all Google Ads customers.
     geo_customer_id = customers[0]["customer_id"]
     geo_targets = get_google_geo_targets(geo_customer_id)

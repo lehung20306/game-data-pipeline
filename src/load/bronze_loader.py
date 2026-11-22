@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 logger = logging.getLogger(__name__)
 
-def load_to_bronze(table_name, rows, source, source_account_id=None):
+def load_to_bronze(table_name, rows, source, source_account_id=None, account_id_field=None, write_disposition="WRITE_APPEND"):
     if not rows:
         logger.warning("No data to load into %s", table_name)
         return 0
@@ -32,10 +32,10 @@ def load_to_bronze(table_name, rows, source, source_account_id=None):
     for row in rows:
         prepared_rows.append({
             "source": source,
-            "source_account_id": (
-                str(source_account_id)
-                if source_account_id is not None
-                else None
+            "source_account_id": str(
+                row[account_id_field]
+                if account_id_field
+                else source_account_id
             ),
             "payload": row,
             "extracted_at": extracted_at,
@@ -43,7 +43,7 @@ def load_to_bronze(table_name, rows, source, source_account_id=None):
     job_config = bigquery.LoadJobConfig(
         schema=schema,
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        write_disposition=write_disposition,
         create_disposition=bigquery.CreateDisposition.CREATE_IF_NEEDED,
     )
     logger.info(

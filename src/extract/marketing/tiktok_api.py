@@ -14,7 +14,7 @@ TIKTOK_HEADERS = {"Access-Token": TIKTOK_TOKEN}
 TIKTOK_BASE = os.getenv("TIKTOK_BASE").rstrip("/")
 logger = logging.getLogger(__name__)
 
-def tiktok_get(path, params):
+def tiktok_get(path, params=None):
     while True:
         body = requests.get(TIKTOK_BASE + path, headers=TIKTOK_HEADERS, params=params, timeout=60).json()
         if body["code"] == 0:
@@ -49,17 +49,7 @@ def get_tiktok_pages(path, params):
     return rows
 
 def get_tiktok_advertisers():
-    config_path = BASE_DIR / "config" / "account_mapping.yaml"
-    with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    advertisers = []
-    for advertiser_id, info in config["tiktok"].items():
-        advertisers.append({
-            "advertiser_id": str(advertiser_id),
-            "game": info["game"],
-            "os": info["os"]
-        })
-    return advertisers
+    return tiktok_get("/oauth2/advertiser/get/")["list"]
 
 def get_tiktok_campaigns(advertiser_id):
     path = "/campaign/get/"

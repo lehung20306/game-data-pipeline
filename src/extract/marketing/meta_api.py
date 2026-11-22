@@ -35,18 +35,32 @@ def get_meta_pages(url, params):
     return rows
 
 def get_meta_accounts():
-    config_path = BASE_DIR / "config" / "account_mapping.yaml"
-    with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    accounts = []
-    for account_id, info in config["meta"].items():
-        accounts.append({
-            "account_id": str(account_id),
-            "api_id": f"act_{account_id}",
-            "game": info["game"],
-            "os": info["os"]
-        })
-    return accounts
+    url = f"{META_BASE}/me/adaccounts"
+    params = {
+        "access_token": META_TOKEN,
+        "fields": "account_id,name,currency,timezone_name",
+        "limit": 500,
+    }
+    accounts = get_meta_pages(url, params)
+
+    return [
+        {
+            "account_id": str(account["account_id"]),
+            "account_name": account.get("name"),
+            "currency": account.get("currency"),
+            "timezone": account.get("timezone_name"),
+        }
+        for account in accounts
+    ]
+
+def get_meta_accounts():
+    url = f"{META_BASE}/me/adaccounts"
+    params = {
+        "access_token": META_TOKEN,
+        "fields": "id,account_id,name",
+        "limit": 500
+    }
+    return get_meta_pages(url, params)
 
 def get_meta_campaigns(account_id):
     url = f"{META_BASE}/{account_id}/campaigns"

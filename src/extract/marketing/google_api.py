@@ -26,15 +26,33 @@ def _google_headers():
     }
 
 def get_google_customers():
-    config_path = BASE_DIR / "config" / "account_mapping.yaml"
-    with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+    url = f"{GOOGLE_BASE}/customers:listAccessibleCustomers"
+    response = requests.get(
+        url,
+        headers=_google_headers(),
+        timeout=60
+    )
+    response.raise_for_status()
+    customer_ids = [
+        name.split("/")[-1]
+        for name in response.json()["resourceNames"]
+    ]
     customers = []
-    for customer_id, info in config["google"].items():
+    for customer_id in customer_ids:
+        query = """
+            SELECT
+                customer.id,
+                customer.descriptive_name
+            FROM customer
+        """
+        rows = get_google_rows(customer_id, query)
+        if not rows:
+            raise RuntimeError(
+                f"No customer information returned for {customer_id}"
+            )
         customers.append({
-            "customer_id": str(customer_id),
-            "game": info["game"],
-            "os": info["os"]
+            "customer_id": str(rows[0]["customer"]["id"]),
+            "name": rows[0]["customer"]["descriptiveName"]
         })
     return customers
 
@@ -65,7 +83,6 @@ def get_google_rows(customer_id, query):
         if "error" in batch:
             raise RuntimeError(f"Google Ads API error: {batch['error']}")
         rows.extend(batch.get("results", []))
-    logger.info("Google customer %s: %d GAQL rows", customer_id, len(rows))
     return rows
 
 def get_google_campaigns(customer_id):
@@ -118,7 +135,6 @@ def get_google_reporting(customer_id, since, until):
     until_date = date.fromisoformat(until)
     if since_date > until_date:
         raise ValueError("since must be on or before until")
-
     query = f"""
         SELECT
             segments.date,
