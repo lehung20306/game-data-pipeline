@@ -1,11 +1,12 @@
 import os
 import time
 import requests
-import yaml
 import json
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
+
+from src.pipeline_logging import AdsAPIError
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BASE_DIR / ".env")
@@ -19,10 +20,10 @@ def meta_get(url, params):
         if "error" not in body:
             return body                              
         if body["error"]["code"] == 17:                 
-            logger.warning("Meta rate limit reached. Retrying in 60 seconds.")
+            logger.warning("Rate limit reached | platform=meta api_code=17 retry_in_s=60")
             time.sleep(60)
             continue
-        raise RuntimeError(f"Meta API error: {body['error']}")
+        raise AdsAPIError("meta", body["error"].get("code"))
 
 def get_meta_pages(url, params):
     rows = []
@@ -33,25 +34,6 @@ def get_meta_pages(url, params):
         # The next URL already contains all query parameters.
         params = None
     return rows
-
-def get_meta_accounts():
-    url = f"{META_BASE}/me/adaccounts"
-    params = {
-        "access_token": META_TOKEN,
-        "fields": "account_id,name,currency,timezone_name",
-        "limit": 500,
-    }
-    accounts = get_meta_pages(url, params)
-
-    return [
-        {
-            "account_id": str(account["account_id"]),
-            "account_name": account.get("name"),
-            "currency": account.get("currency"),
-            "timezone": account.get("timezone_name"),
-        }
-        for account in accounts
-    ]
 
 def get_meta_accounts():
     url = f"{META_BASE}/me/adaccounts"

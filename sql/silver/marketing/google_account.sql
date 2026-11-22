@@ -1,6 +1,16 @@
 CREATE OR REPLACE TABLE `{{PROJECT_ID}}.silver.google_account` AS
-SELECT
-    'google' AS platform,
-    JSON_VALUE(payload, '$.customer_id') AS account_id,
-    JSON_VALUE(payload, '$.name') AS account_name
-FROM `{{PROJECT_ID}}.bronze.google_customer_raw`;
+WITH normalized AS (
+    SELECT
+        'google' AS platform,
+        JSON_VALUE(payload, '$.customer_id') AS account_id,
+        JSON_VALUE(payload, '$.name') AS account_name,
+        extracted_at
+    FROM `{{PROJECT_ID}}.bronze.google_customer_raw`
+)
+SELECT platform, account_id, account_name
+FROM normalized
+WHERE account_id IS NOT NULL
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY account_id
+    ORDER BY extracted_at DESC
+) = 1;

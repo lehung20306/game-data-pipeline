@@ -25,7 +25,7 @@ from src.extract.marketing.google_api import (
 )
 from src.load.bronze_loader import load_to_bronze
 from src.transform.silver import run_all_silver
-from src.transform.silver import run_silver
+from src.pipeline_logging import error_context
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,27 +37,23 @@ def run_meta_pipeline(since, until):
     accounts = get_meta_accounts()
     if not accounts:
         raise RuntimeError("No Meta accounts configured")
+    logger.info(
+        "Bronze started | platform=meta accounts=%d since=%s until=%s",
+        len(accounts), since, until,
+    )
     load_to_bronze(
-    "meta_account_raw",
+        "meta_account_raw",
         accounts,
         source="meta",
         source_account_id=None,
         account_id_field="account_id",
         write_disposition="WRITE_TRUNCATE"
     )
-    logger.info("Starting Meta pipeline")
-    logger.info("Total accounts: %d", len(accounts))
-    logger.info("Date range: %s to %s", since, until)
     failed_accounts = []
     for account in accounts:
         account_id = account["account_id"]
-        api_id = account["api_id"]
-        game = account["game"]
-        logger.info(
-            "Processing account: %s | Game: %s",
-            api_id,
-            game,
-        )
+        api_id = account["id"]
+        logger.debug("Account started | platform=meta account_id=%s", account_id)
         try:
             datasets = [
                 ("meta_campaign_raw", get_meta_campaigns(api_id)),
@@ -72,23 +68,28 @@ def run_meta_pipeline(since, until):
                     source="meta",
                     source_account_id=account_id,
                 )
-            logger.info("Account %s completed successfully", api_id)
-        except Exception:
-            logger.exception(
-                "Failed to process account %s",
-                api_id,
+            logger.debug("Account completed | platform=meta account_id=%s", account_id)
+        except Exception as error:
+            logger.error(
+                "Account failed | platform=meta account_id=%s %s", account_id, error_context(error),
             )
-            failed_accounts.append(api_id)
+            failed_accounts.append(account_id)
+    logger.log(
+        logging.ERROR if failed_accounts else logging.INFO,
+        "Bronze finished | platform=meta succeeded=%d failed=%d",
+        len(accounts) - len(failed_accounts), len(failed_accounts),
+    )
     if failed_accounts:
-        raise RuntimeError(
-            f"Meta pipeline failed for accounts: {failed_accounts}"
-        )
-    logger.info("Meta pipeline completed successfully")
+        raise RuntimeError("Meta Bronze failed")
 
 def run_tiktok_pipeline(since, until):
     advertisers = get_tiktok_advertisers()
     if not advertisers:
         raise RuntimeError("No TikTok advertisers configured")
+    logger.info(
+        "Bronze started | platform=tiktok accounts=%d since=%s until=%s",
+        len(advertisers), since, until,
+    )
     load_to_bronze(
         "tiktok_advertiser_raw",
         advertisers,
@@ -97,16 +98,10 @@ def run_tiktok_pipeline(since, until):
         account_id_field="advertiser_id",
         write_disposition="WRITE_TRUNCATE"
     )
-    logger.info("Starting TikTok pipeline | %d advertisers", len(advertisers))
-    logger.info("Date range: %s to %s", since, until)
     failed_advertisers = []
     for advertiser in advertisers:
         advertiser_id = advertiser["advertiser_id"]
-        logger.info(
-            "Processing TikTok advertiser: %s | Game: %s",
-            advertiser_id,
-            advertiser["game"],
-        )
+        logger.debug("Account started | platform=tiktok account_id=%s", advertiser_id)
         try:
             datasets = [
                 ("tiktok_campaign_raw", get_tiktok_campaigns(advertiser_id)),
@@ -121,21 +116,28 @@ def run_tiktok_pipeline(since, until):
                     source="tiktok",
                     source_account_id=advertiser_id,
                 )
-            logger.info("TikTok advertiser %s completed", advertiser_id)
-        except Exception:
-            logger.exception("Failed TikTok advertiser %s", advertiser_id)
+            logger.debug("Account completed | platform=tiktok account_id=%s", advertiser_id)
+        except Exception as error:
+            logger.error(
+                "Account failed | platform=tiktok account_id=%s %s", advertiser_id, error_context(error),
+            )
             failed_advertisers.append(advertiser_id)
-
+    logger.log(
+        logging.ERROR if failed_advertisers else logging.INFO,
+        "Bronze finished | platform=tiktok succeeded=%d failed=%d",
+        len(advertisers) - len(failed_advertisers), len(failed_advertisers),
+    )
     if failed_advertisers:
-        raise RuntimeError(
-            f"TikTok pipeline failed for advertisers: {failed_advertisers}"
-        )
-    logger.info("TikTok pipeline completed successfully")
+        raise RuntimeError("TikTok Bronze failed")
 
 def run_google_pipeline(since, until):
     customers = get_google_customers()
     if not customers:
         raise RuntimeError("No Google Ads customers configured")
+    logger.info(
+        "Bronze started | platform=google accounts=%d since=%s until=%s",
+        len(customers), since, until,
+    )
     load_to_bronze(
         "google_customer_raw",
         customers,
@@ -144,8 +146,6 @@ def run_google_pipeline(since, until):
         account_id_field="customer_id",
         write_disposition="WRITE_TRUNCATE"
     )
-    logger.info("Starting Google Ads pipeline | %d customers", len(customers))
-    logger.info("Date range: %s to %s", since, until)
     # The geo-target lookup is shared across all Google Ads customers.
     geo_customer_id = customers[0]["customer_id"]
     geo_targets = get_google_geo_targets(geo_customer_id)
@@ -160,11 +160,7 @@ def run_google_pipeline(since, until):
     failed_customers = []
     for customer in customers:
         customer_id = customer["customer_id"]
-        logger.info(
-            "Processing Google customer: %s | Game: %s",
-            customer_id,
-            customer["game"],
-        )
+        logger.debug("Account started | platform=google account_id=%s", customer_id)
         try:
             datasets = [
                 ("google_campaign_raw", get_google_campaigns(customer_id)),
@@ -179,15 +175,19 @@ def run_google_pipeline(since, until):
                     source="google",
                     source_account_id=customer_id,
                 )
-            logger.info("Google customer %s completed", customer_id)
-        except Exception:
-            logger.exception("Failed Google customer %s", customer_id)
+            logger.debug("Account completed | platform=google account_id=%s", customer_id)
+        except Exception as error:
+            logger.error(
+                "Account failed | platform=google account_id=%s %s", customer_id, error_context(error),
+            )
             failed_customers.append(customer_id)
+    logger.log(
+        logging.ERROR if failed_customers else logging.INFO,
+        "Bronze finished | platform=google succeeded=%d failed=%d",
+        len(customers) - len(failed_customers), len(failed_customers),
+    )
     if failed_customers:
-        raise RuntimeError(
-            f"Google Ads pipeline failed for customers: {failed_customers}"
-        )
-    logger.info("Google Ads pipeline completed successfully")
+        raise RuntimeError("Google Ads Bronze failed")
 
 def run_all_pipelines(since, until, silver_only=False):
     if not silver_only:
@@ -199,14 +199,14 @@ def run_all_pipelines(since, until, silver_only=False):
         ):
             try:
                 runner(since, until)
-            except Exception:
-                logger.exception("Bronze extraction failed for %s", source)
+            except Exception as error:
+                logger.error("Bronze failed | platform=%s %s", source, error_context(error))
                 failed_sources.append(source)
         if failed_sources:
             raise RuntimeError(
                 f"Silver skipped: Bronze extraction failed for {failed_sources}"
             )
-    logger.info("Starting Silver transformations for all platforms")
+    logger.info("Silver started | mode=%s", "silver_only" if silver_only else "full")
     run_all_silver()
     logger.info("All Bronze and Silver pipelines completed successfully")
 
@@ -229,4 +229,8 @@ if __name__ == "__main__":
     if date.fromisoformat(since) > date.fromisoformat(until):
         parser.error("--since must be on or before --until")
 
-    run_all_pipelines(since, until, silver_only=args.silver_only)
+    try:
+        run_all_pipelines(since, until, silver_only=args.silver_only)
+    except Exception as error:
+        logger.error("Pipeline failed | %s", error_context(error))
+        raise SystemExit(1) from None

@@ -1,10 +1,11 @@
 import os
 from datetime import date
 import requests
-import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
+
+from src.pipeline_logging import AdsAPIError
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BASE_DIR / ".env")
@@ -81,7 +82,8 @@ def get_google_rows(customer_id, query):
         if not isinstance(batch, dict):
             raise ValueError("Unexpected Google searchStream batch format")
         if "error" in batch:
-            raise RuntimeError(f"Google Ads API error: {batch['error']}")
+            error = batch["error"]
+            raise AdsAPIError("google", error.get("code") if isinstance(error, dict) else None)
         rows.extend(batch.get("results", []))
     return rows
 

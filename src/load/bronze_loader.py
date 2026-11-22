@@ -6,13 +6,17 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
+from src.pipeline_logging import error_context
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 logger = logging.getLogger(__name__)
 
 def load_to_bronze(table_name, rows, source, source_account_id=None, account_id_field=None, write_disposition="WRITE_APPEND"):
+    account_scope = source_account_id if source_account_id is not None else "snapshot"
     if not rows:
-        logger.warning("No data to load into %s", table_name)
+        logger.info("Bronze load skipped | source=%s account_id=%s table=%s rows=0",
+                    source, account_scope, table_name)
         return 0
     if not re.fullmatch(r"[a-z][a-z0-9_]*", table_name):
         raise ValueError(f"Invalid table name: {table_name}")
@@ -46,20 +50,18 @@ def load_to_bronze(table_name, rows, source, source_account_id=None, account_id_
         write_disposition=write_disposition,
         create_disposition=bigquery.CreateDisposition.CREATE_IF_NEEDED,
     )
+    load_job = None
+    try:
+        load_job = client.load_table_from_json(prepared_rows, table_id, job_config=job_config)
+        load_job.result()
+    except Exception as error:
+        logger.error(
+            "Bronze load failed | source=%s account_id=%s table=%s job_id=%s %s",
+            source, account_scope, table_name, getattr(load_job, "job_id", None), error_context(error),
+        )
+        raise
     logger.info(
-        "Loading %d rows into %s",
-        len(prepared_rows),
-        table_id,
-    )
-    load_job = client.load_table_from_json(
-        prepared_rows,
-        table_id,
-        job_config=job_config,
-    )
-    load_job.result()
-    logger.info(
-        "Successfully loaded %d rows into %s",
-        load_job.output_rows,
-        table_id,
+        "Bronze load completed | source=%s account_id=%s table=%s rows=%d job_id=%s disposition=%s",
+        source, account_scope, table_name, load_job.output_rows, load_job.job_id, write_disposition,
     )
     return load_job.output_rows

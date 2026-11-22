@@ -4,12 +4,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
+from src.pipeline_logging import error_context
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 logger = logging.getLogger(__name__)
 
 META_SILVER_QUERIES = [
-    "marketing/meta_account.sql"
+    "marketing/meta_account.sql",
     "marketing/meta_campaign.sql",
     "marketing/meta_ad_group.sql",
     "marketing/meta_ad.sql",
@@ -17,7 +19,7 @@ META_SILVER_QUERIES = [
 ]
 
 TIKTOK_SILVER_QUERIES = [
-    "marketing/tiktok_account.sql"
+    "marketing/tiktok_account.sql",
     "marketing/tiktok_campaign.sql",
     "marketing/tiktok_ad_group.sql",
     "marketing/tiktok_ad.sql",
@@ -25,7 +27,7 @@ TIKTOK_SILVER_QUERIES = [
 ]
 
 GOOGLE_SILVER_QUERIES = [
-    "marketing/google_account.sql"
+    "marketing/google_account.sql",
     "marketing/google_campaign.sql",
     "marketing/google_ad_group.sql",
     "marketing/google_ad.sql",
@@ -52,6 +54,7 @@ def run_silver(query_files):
             "{{PROJECT_ID}}",
             project_id
         )
+        job = None
         try:
             # Execute SQL in BigQuery
             job = client.query(sql)
@@ -62,10 +65,10 @@ def run_silver(query_files):
                 query_file,
                 job.job_id
             )
-        except Exception:
-            logger.exception(
-                "Silver transformation failed: %s",
-                query_file
+        except Exception as error:
+            logger.error(
+                "Silver transformation failed | query=%s job_id=%s %s",
+                query_file, getattr(job, "job_id", None), error_context(error),
             )
             raise
     logger.info("All Silver transformations completed successfully")
@@ -87,5 +90,8 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     )
-    run_all_silver()
-
+    try:
+        run_all_silver()
+    except Exception as error:
+        logger.error("Silver failed | %s", error_context(error))
+        raise SystemExit(1) from None

@@ -1,11 +1,12 @@
 import os
 import time
 import requests
-import yaml
 import json
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
+
+from src.pipeline_logging import AdsAPIError
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BASE_DIR / ".env")
@@ -20,10 +21,10 @@ def tiktok_get(path, params=None):
         if body["code"] == 0:
             return body["data"]                      
         if body["code"] == 40100:                       
-            logger.warning("Tiktok rate limit reached. Retrying in 60 seconds.")
+            logger.warning("Rate limit reached | platform=tiktok api_code=40100 retry_in_s=60")
             time.sleep(60)
             continue
-        raise RuntimeError(f"Tiktok API error {body['code']}: {body['message']}")
+        raise AdsAPIError("tiktok", body["code"])
 
 def get_tiktok_pages(path, params):
     rows = []
@@ -37,7 +38,7 @@ def get_tiktok_pages(path, params):
         rows.extend(data.get("list", []))
         page_info = data.get("page_info", {})
         total_pages = int(page_info.get("total_page", 1))
-        logger.info(
+        logger.debug(
             "TikTok page %d/%d fetched, total rows: %d",
             page,
             total_pages,
