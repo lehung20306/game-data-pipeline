@@ -5,8 +5,12 @@ from src.transform.sql_runner import run_sql_files
 
 QUERY_FILES = [
     "marketing/dim_ad_account.sql",
+    "marketing/dim_campaign.sql",
+    "marketing/dim_ad.sql",
     "marketing/fact_ad_performance_daily.sql",
-    "marketing/agg_game_marketing_daily.sql",
+    "marketing/agg_game_country_daily.sql",
+    "marketing/agg_campaign_marketing_daily.sql",
+    "marketing/agg_creative_format_daily.sql",
 ]
 logger = logging.getLogger(__name__)
 
