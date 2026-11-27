@@ -29,7 +29,7 @@ def run_all_pipelines(since, until):
     if failed_sources:
         raise RuntimeError(f"Silver and Gold skipped: Bronze failed for {failed_sources}")
 
-    run_silver()
+    run_silver(since=since, until=until)
     run_gold()
     logger.info("All Bronze, Silver and Gold pipelines completed successfully")
 

@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
 
 
-def run_sql_files(layer, query_files):
+def run_sql_files(layer, query_files, *, query_parameters=None):
     load_dotenv(BASE_DIR / ".env")
     project_id = os.environ["GCP_PROJECT_ID"]
     sql_dir = BASE_DIR / "sql" / layer
@@ -32,7 +32,12 @@ def run_sql_files(layer, query_files):
         logger.info("Transformation started | layer=%s query=%s", layer, query_file)
         job = None
         try:
-            job = client.query(sql)
+            parameters = (query_parameters or {}).get(query_file)
+            if parameters is None:
+                job = client.query(sql)
+            else:
+                job_config = bigquery.QueryJobConfig(query_parameters=parameters)
+                job = client.query(sql, job_config=job_config)
             job.result()
         except Exception as error:
             logger.error(

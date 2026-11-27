@@ -1,4 +1,12 @@
-CREATE OR REPLACE TABLE `{{PROJECT_ID}}.silver.meta_ad_performance_daily` AS
+-- Rebuild all available history for Silver-only or when bootstrapping the table.
+DECLARE full_refresh BOOL DEFAULT @since IS NULL OR NOT EXISTS (
+    SELECT 1
+    FROM `{{PROJECT_ID}}.silver.INFORMATION_SCHEMA.TABLES`
+    WHERE table_name = 'meta_ad_performance_daily'
+);
+
+-- Staging keeps the latest Bronze snapshot for each reporting key.
+CREATE TEMP TABLE stg_meta_ad_performance_daily AS
 WITH normalized AS (
     SELECT
         source AS platform,
@@ -78,7 +86,44 @@ SELECT *
 FROM normalized
 WHERE ad_id IS NOT NULL
     AND report_date IS NOT NULL
+    AND (full_refresh OR report_date BETWEEN @since AND @until)
 QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY account_id, ad_id, report_date, country_code
+    PARTITION BY platform, account_id, ad_id, report_date, country_code
     ORDER BY extracted_at DESC
 ) = 1;
+
+IF full_refresh THEN
+    CREATE OR REPLACE TABLE `{{PROJECT_ID}}.silver.meta_ad_performance_daily` AS
+    SELECT * FROM stg_meta_ad_performance_daily;
+ELSE
+    MERGE `{{PROJECT_ID}}.silver.meta_ad_performance_daily` AS t
+    USING stg_meta_ad_performance_daily AS s
+        ON t.platform = s.platform
+        AND t.account_id IS NOT DISTINCT FROM s.account_id
+        AND t.ad_id = s.ad_id
+        AND t.report_date = s.report_date
+        AND t.country_code IS NOT DISTINCT FROM s.country_code
+    WHEN MATCHED AND s.extracted_at IS NOT NULL
+        AND (t.extracted_at IS NULL OR s.extracted_at > t.extracted_at) THEN
+        UPDATE SET
+            campaign_id = s.campaign_id,
+            ad_group_id = s.ad_group_id,
+            spend_usd = s.spend_usd,
+            impressions = s.impressions,
+            clicks = s.clicks,
+            installs = s.installs,
+            purchases = s.purchases,
+            revenue_usd = s.revenue_usd,
+            extracted_at = s.extracted_at
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (
+            platform, account_id, campaign_id, ad_group_id, ad_id,
+            report_date, country_code, spend_usd, impressions, clicks,
+            installs, purchases, revenue_usd, extracted_at
+        )
+        VALUES (
+            s.platform, s.account_id, s.campaign_id, s.ad_group_id, s.ad_id,
+            s.report_date, s.country_code, s.spend_usd, s.impressions, s.clicks,
+            s.installs, s.purchases, s.revenue_usd, s.extracted_at
+        );
+END IF;
